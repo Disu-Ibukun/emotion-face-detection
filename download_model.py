@@ -1,17 +1,22 @@
-import requests
 import os
+import requests
 
-def download():
-    url = "https://drive.google.com/uc?export=download&id=12loWK8x0TFpiatoNqfDTD6BGZPNcgSYN"
-    model_path = "model.h5"
+MODEL_PATH = "model.h5"
+MODEL_URL = "https://drive.google.com/uc?export=download&id=12loWK8x0TFpiatoNqfDTD6BGZPNcgSYN"
 
-    if os.path.exists(model_path):
-        print("model.h5 already exists, skipping download.")
+def download_model(url=MODEL_URL, save_path=MODEL_PATH):
+    if os.path.exists(save_path):
+        print(f"{save_path} already exists, skipping download.")
         return
 
-    print("Downloading model.h5...")
-    r = requests.get(url, stream=True)
-    with open(model_path, "wb") as f:
-        for chunk in r.iter_content(chunk_size=8192):
-            f.write(chunk)
-    print("Downloaded model.h5")
+    print(f"Downloading model from {url}...")
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    with open(save_path, "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+    print("Model downloaded successfully.")
+
+if __name__ == "__main__":
+    download_model()

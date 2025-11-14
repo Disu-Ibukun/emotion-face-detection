@@ -1,41 +1,33 @@
 import os
-from flask import Flask, request, render_template, jsonify
-from keras.models import load_model
-import download_model  # this will download model.h5 if it doesn't exist
+from flask import Flask, request, jsonify
+from tensorflow.keras.models import load_model
 
 app = Flask(__name__)
 
-# Ensure model.h5 exists in project root
 MODEL_PATH = "model.h5"
-if not os.path.exists(MODEL_PATH):
-    download_model.download()  # call a function in download_model.py to fetch model
 
-# Load the Keras model
+# Ensure model exists
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError(f"{MODEL_PATH} not found. Make sure download_model.py ran during build.")
+
+# Load the model
 model = load_model(MODEL_PATH)
 
-# Get the Render port or default to 5000
-PORT = int(os.environ.get("PORT", 5000))
-
-@app.route('/')
+@app.route("/")
 def home():
-    return render_template("index.html")  # your HTML form file
+    return "Emotion Detection App is running!"
 
-@app.route('/submit', methods=['POST'])
-def submit():
-    # Example: handle uploaded image
-    if 'photo' not in request.files:
-        return "No file uploaded", 400
-    photo = request.files['photo']
-    # Save the photo temporarily
-    photo_path = os.path.join("/tmp", photo.filename)
-    photo.save(photo_path)
+@app.route("/predict", methods=["POST"])
+def predict():
+    data = request.get_json()
+    input_data = data.get("input")
 
-    # Here you would preprocess the image and run your model prediction
-    # prediction = model.predict(preprocess(photo_path))
+    if input_data is None:
+        return jsonify({"error": "No input data provided"}), 400
 
-    # Example placeholder response
-    result = {"prediction": "happy"}  # replace with actual prediction
-    return jsonify(result)
+    prediction = model.predict([input_data])
+    return jsonify({"prediction": prediction.tolist()})
 
+PORT = int(os.environ.get("PORT", 5000))
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=PORT)
